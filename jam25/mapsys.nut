@@ -125,7 +125,7 @@ function OnPostSpawn() {
 				if (ply.GetTeam() == TEAMS.HUMANS) {
 
 					if (ply.GetPlayerClass() == 2) {
-						// printl("STUPID UGLY FAG")
+						// printl("STUPID UGLY Friend")
 						// set up custom """"Class"""" loadout
 						// for (local weapon; weapon = Entities.FindByClassname(weapon, "tf_weapon_sniperrifle*");) {
 							// weapon.Destroy()
