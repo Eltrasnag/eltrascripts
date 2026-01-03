@@ -1,0 +1,1 @@
+::MapStage <- 0 // literally the only purpose of this ent is to house this variable :P
