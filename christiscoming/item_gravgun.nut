@@ -18,7 +18,7 @@ FXCore <- Spawn("info_particle_system", {
 	start_active = true,
 })
 
-
+MaximumMass <- 1000
 FXBeamTargetName <- UniqueString("_gravgunbeamfx")
 beamparticlename <- "cic_gravgun_beam"
 FXBeamTarget <- Spawn("info_particle_system", {
@@ -242,7 +242,7 @@ function FireWeapon() {
 
 		local cname = ent.GetClassname()
 		// printl("hit ent: "+cname)
-		if ((ent.GetName().len() != 0) || (cname in AllowedCarryables)) {
+		if ((ent.GetName().len() != 0) || !(cname in AllowedCarryables) || NetProps.GetPropFloat(ent, "m_fMass") >= MaximumMass) {
 			return
 		}
 		ent.SetCollisionGroup(Constants.ECollisionGroup.COLLISION_GROUP_INTERACTIVE_DEBRIS)

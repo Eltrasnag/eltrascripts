@@ -10,10 +10,10 @@ const IN_MOVERIGHT = 1024;
 const DMG_CRUSH = 1;
 const COLLISION_GROUP_PLAYER = 5;
 const COLLISION_GROUP_IN_VEHICLE = 10;
-constECONSTANTS.MOVETYPE_NONE = 0;
-constECONSTANTS.MOVETYPE_WALK = 2;
+const MOVETYPE_NONE = 0;
+const MOVETYPE_WALK = 2;
 const FL_DUCKING = 2;
-const EECONSTANTS.FL_IS_BEING_LIFTED_BY_BARNACLE = 1048576;
+const FL_IS_BEING_LIFTED_BY_BARNACLE = 1048576;
 const MASK_PLAYERSOLID = 33636363; // CONTENTS_SOLID|CONTENTS_MOVEABLE|CONTENTS_WINDOW|CONTENTS_PLAYERCLIP|CONTENTS_GRATE|CONTENTS_MONSTER
 const DMG_VEHICLE = 16;
 
@@ -339,7 +339,7 @@ if (!("VehicleEvents" in getroottable()))
 			if (vehicle_scope)
 				vehicle_scope.Exit(false, false);
 
-			player.AddEFlags(EECONSTANTS.FL_IS_BEING_LIFTED_BY_BARNACLE); // prevents game's +use from passing to vehicle
+			player.AddEFlags(FL_IS_BEING_LIFTED_BY_BARNACLE); // prevents game's +use from passing to vehicle
 		}
 	}
 

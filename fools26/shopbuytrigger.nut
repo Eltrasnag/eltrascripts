@@ -44,7 +44,7 @@ function Think() {
 
 
 			cash = context.money
-			if (cash < SHOP_ITEMPRICE && !(ply in poorheads)) { // player can't afford item
+			if (cash < SHOP_ITEMPRICE) { // player can't afford item
 				// ClientPrint(ply, EHudNotify, ">> You are too poor to afford this item. <<")
 				DoDialogueOnClient(ply, "Uh oh, looks like you're too poor for that one! Come back when you're a little bit more.... Penniful.", "grandma")
 
@@ -54,7 +54,8 @@ function Think() {
 			}
 
 			if (cash >= SHOP_ITEMPRICE) {
-				QAcceptInput(SHOP_ITEMTEMPLATE, "ForceSpawn")
+				// QAcceptInput(SHOP_ITEMTEMPLATE, "ForceSpawn")
+				QFireByHandle(SHOP_ITEMTEMPLATE, "ForceSpawn")
 				SetContext(ply, "money", cash - SHOP_ITEMPRICE)
 				DoDialogueOnClient(ply, "We appreciate your purchase!", "grandma")
 				PlaySoundEX("eltra/cash_register.mp3", ply.GetOrigin())

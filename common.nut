@@ -7,6 +7,8 @@
 // 	::GAMEEVENTS <- {}
 // }
 // GAMEEVENTS.clear()
+
+
 ::css_scale <- true,
 ::css_scale_normal <- 1,
 ::css_scale_skial <- 0.70,
@@ -269,7 +271,10 @@ enum TEAMS {
 
 ::QFire <- function(target, action = "", value = "", delay = 0.0, activador = null) {
 	EntFire(target, action, value, delay, activador)
-	// is this necessary
+	// is this necessary // it is!
+	if (regex_runscriptcode.search(action.tolower())) {
+		CleanString(value)
+	}
 	// local h1 = Spawn("info_target", {})
 
 	// local h2 = Spawn("info_target", {})
@@ -286,7 +291,7 @@ enum TEAMS {
 
 
 ::CleanString <- function(action) { // make entity
-		local h1 = Spawn("info_target", {})
+		local h1 = Spawn("info_target", {}) // is there a reason this is info target
 		h1.KeyValueFromString("targetname", action)
 		h1.Destroy()
 }
@@ -295,14 +300,19 @@ enum TEAMS {
 	// try {
 	EntFireByHandle(entity, action, value, delay, activador, cadder)
 
-	local h1 = Spawn("info_target", {})
+	if (regex_runscriptcode.search(action.tolower())) { // i think we only need to do this for runscriptcode ?
+		// CleanString(action)
+		CleanString(value)
+	}
 
-	local h2 = Spawn("info_target", {})
+	// local h1 = Spawn("info_target", {})
 
-	h1.KeyValueFromString("targetname", action)
-	h1.Kill()
-	h2.KeyValueFromString("targetname", value)
-	h2.Kill()
+	// local h2 = Spawn("info_target", {})
+
+	// h1.KeyValueFromString("targetname", action)
+	// h1.Kill()
+	// h2.KeyValueFromString("targetname", value)
+	// h2.Kill()
 
 }
 
@@ -1119,7 +1129,7 @@ const SF_ITEM_EQUIP = "eltra/item_get.mp3"
 			fadein = 0.1,
 			fadeout = 0.1,
 			holdtime = 1,
-			channel = 7, // wtf it doesnt go this high? butuuit still works what
+			channel = 0, // channel is ALWAYS 0 for timers
 			// thinkfunction = "ze_map_timer_think",
 			effect = 0,
 			color = MAPFUNC.MAP_COLOR,
@@ -1164,7 +1174,7 @@ const SF_ITEM_EQUIP = "eltra/item_get.mp3"
 		fadein = 1.5,
 		fadeout = 0.5,
 		holdtime = 5,
-		channel = 0,
+		channel = 1, // mapsay is ALWAYS channel 1
 		effect = 0,
 		color = MAP_COLOR,
 		spawnflags = 1,
@@ -2131,12 +2141,13 @@ SpawnNPCwave.bindenv(getroottable()) // compat
 }
 
 // wrapper because i keep oopsing when doing context on ctfplayer!
-::CTFPlayer.GetContext <- function() {
+getroottable().CTFPlayer.GetContext <- function() {
 	return ::GetContext(this)
 }
 
-::CTFPlayer.SetContext <- function(key = "NULLKEYCTF", value = 0) {
-	SetContext(this, key, value)
+getroottable().CTFPlayer.SetContext <- function(key = "NULLKEYCTF", value = 0) {
+	local me = this
+	getroottable().SetContext(this, key, value)
 }
 
 
@@ -2257,11 +2268,16 @@ getroottable().CTFPlayer.IsEltra <- function() {
 // 	// ent.SetAngularVelocity(vecAngVel.x,vecAngVel.y,vecAngVel.z);
 // }
 
+::regex_runscriptcode <- regexp("runscriptcode")
 
 ::QAcceptInput <- function(ent, p1 = "", p2 = "", acti = null, calli = null) {
 	ent.AcceptInput(p1, p2, acti, calli)
-	CleanString(p1)
-	CleanString(p2)
+
+	// is this necessary?
+	if (regex_runscriptcode.search(p1.tolower())) {
+		// CleanString(p1)
+		CleanString(p2)
+	}
 }
 
 ::IgnitePlayer <- function(ply) {
@@ -2306,7 +2322,8 @@ getroottable().CTFPlayer.IsEltra <- function() {
 
 }
 
-::MakeGameText <- function(msg = "NO_MESSAGE", xpos = -1,ypos = -1, cola = MAP_COLOR, channel = RandomInt(0,5), spawnflag = 1) {
+enum GAMETEXT{ ALL = 1, PLAYER = 0}
+::MakeGameText <- function(msg = "NO_MESSAGE", xpos = -1,ypos = -1, spawnflag = 1, cola = MAP_COLOR, channel = RandomInt(0,5)) {
 	return Spawn("game_text", { // temp
 		message = msg,
 		fadein = 0.1,
@@ -2319,4 +2336,48 @@ getroottable().CTFPlayer.IsEltra <- function() {
 		x = xpos,
 		y = ypos,
 	})
+}
+
+::CTFPlayer.DisplayGameText <- function(msg = "NO_MESSAGE", xpos = -1,ypos = -1, spawnflag = 1, cola = MAP_COLOR, lifetime = 0.5) {
+
+	local txt = Spawn("game_text", { // temp
+
+		message = msg,
+		fadein = 0.1,
+		fadeout = 0.1,
+		holdtime = lifetime,
+		channel = RandomInt(2,6), // pick random channel outside of the zemapsay/timer range
+		effect = 0,
+		color = cola,
+		spawnflags = spawnflag,
+		x = xpos,
+		y = ypos,
+	})
+	QAcceptInput(txt, "Display", "", this)
+	txt.Kill()
+}
+
+::FindOpenTextChannel <- function() {
+	local TEXT_CHANNELS = [0,1,2,3,4,5]
+
+	local USED_CHANNELS = []
+
+	local text;
+
+	while (text = Entities.FindByClassname(text, "game_text")) {
+		local channel = NetProps.GetPropInt(text, "m_textParms.channel")
+		if (!channel in USED_CHANNELS)
+			printl("found a used channel:")
+			USED_CHANNELS.append(channel)
+	}
+
+
+	for (local i = 0; i < TEXT_CHANNELS.len() - 1; i++) {
+		if (!(i in USED_CHANNELS))
+			printl("ELTRACOMMONS: Found open game_text channel : "+i)
+		return i
+	}
+	printl("ELTRACOMMONS: no used channels ? picking a random one")
+
+	return RandomInt(0,5) // couldn't find a free channel, so just return a random one
 }

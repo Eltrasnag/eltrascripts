@@ -1,5 +1,5 @@
 SHOPITEM_HOVER_DISTANCE <- 8
-SHOPITEM_ROT_SPEED <- 3
+SHOPITEM_ROT_SPEED <- 20
 
 BaseAngle <- self.GetAbsAngles()
 BaseOrigin <- self.GetOrigin()

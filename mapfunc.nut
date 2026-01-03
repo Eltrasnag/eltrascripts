@@ -13,7 +13,7 @@ MAPFUNC.DoSourceScaling <- true // should we scale players better fit source dim
 MAPFUNC.MapFog <- ""
 
 // should we enable the fake ZE plugin?
-// MAPFUNC.DoZombieEscape <- false
+MAPFUNC.DoZombieEscape <- false
 
 ::GAME_IS_TF2 <- false
 // the map's "accent color"
@@ -78,6 +78,7 @@ funcevents <- {
 }
 
 MAPFUNC.PlayerSpawn <- function(ply) {
+	AddThinkToEnt(ply, "") // surely this will not cause problems in laserinsurgency!
 
 	ply.ValidateScriptScope()
 	local scope = ply.GetScriptScope()
@@ -94,7 +95,6 @@ MAPFUNC.PlayerSpawn <- function(ply) {
 
 	ply.SetScriptOverlayMaterial("")
 	SetItemUser(ply, false)
-	AddThinkToEnt(ply, "") // surely this will not cause problems in laserinsurgency!
 	if (MAPFUNC.DoSourceScaling == true) {
 		ply.SetModelScale(css_scale_value,0)
 	}
@@ -113,12 +113,14 @@ MAPFUNC.PlayerGuard <- function() {
 	}
 }
 
+function Precache() { // Do not crash or i will kill myself NOW
+	ListenHooks(funcevents)
+}
 function OnPostSpawn() {
-	if (DEVELOPER_MODE == true) {
+	if (DEVELOPER_MODE == true && MAPFUNC.DoZombieEscape == true) {
 		DoZombieEscape()
 	}
 	NetProps.SetPropInt(Entities.First(), "m_takedamage", 1)
-	ListenHooks(funcevents)
 	MapSpawn()
 }
 

@@ -46,7 +46,7 @@ function BossThink() {
 	}
 
 	if (iNPCsLeft > 0) {
-		local text = MakeGameText("- THE WOLF PACK -\n ⤨ "+iNPCsLeft+" LEFT TO DESTROY ⤪", -1, 0.2, "242 94 2")
+		local text = MakeGameText("- THE WOLF PACK -\n ⤨ "+iNPCsLeft+" LEFT TO DESTROY ⤪", -1, 0.2, 1, "242 94 2")
 		QAcceptInput(text, "Display")
 		text.Kill()
 
@@ -78,7 +78,7 @@ function MakePackage() {
 
 function Defeat() {
 	QFire("mus_s2_furryboss", "Fadeout", "5")
-	local text = MakeGameText("- GREAT JOB! -", -1, 0.2, "242 94 2")
+	local text = MakeGameText("- GREAT JOB! -", -1, 0.2, 1, "242 94 2")
 	QAcceptInput(text, "Display")
 	text.Kill()
 	ze_map_say("[ DOGGY GENERATION HAS TERMINATED. WE THANK YOU FOR YOUR PARTICIPATION IN THIS EXCITING GRANNY SCIENCE ENRICHMENT EXPERIMENT! ]")

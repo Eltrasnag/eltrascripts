@@ -13,5 +13,5 @@ NANABANK <- {}
 function OnPostSpawn() {
 	SetParentEX(NPC_NAMETAG, self)
 	MapSayDelay("In need of a Physics gun? Come to my shop and get as many as you can carry (1)!", "Grandma", 2)
-	NPC_NAMETAG.SetLocalOrigin(Vector(0,0, 45))
+	NPC_NAMETAG.SetLocalOrigin(Vector(0,0, 80))
 }
