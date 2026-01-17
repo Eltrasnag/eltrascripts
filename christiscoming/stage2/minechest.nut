@@ -6,7 +6,9 @@ IsLocked <- false
 chest_anim_speed <- 0.5
 function OnPostSpawn() {
 	Context = GetContext(self)
-	// self.KeyValueFromInt("solid", 3)
+	// self.KeyValueFromInt("solid", )
+	// self.SetCollisionGroup(Constants.ECollisionGroup.COLLISION_GROUP_PLAYER_MOVEMENT)
+	self.SetSolid(Constants.ESolidType.SOLID_VPHYSICS)
 	self.ConnectOutput("OnTakeDamage", "OnChestHit")
 	NetProps.SetPropInt(self, "m_takedamage", 1)
 	// NetProps.SetPropBool(self, "m_bDamaged", true)

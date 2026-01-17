@@ -47,6 +47,8 @@ function OnPostSpawn() {
 
 				local wepsize = NetProps.GetPropArraySize(ply, "m_hMyWeapons")-1
 
+				local pclass = ply.GetPlayerClass()
+				ply.AddCustomAttribute("CARD: move speed bonus", ((zWeapons.class_speeds[pclass] * css_scale_accurate) / zWeapons.base_class_speeds[pclass]), -1)
 				for (local i = 0; i < wepsize; i++) { /// apply balancing to each of the player weapons
 					local wep = NetProps.GetPropEntityArray(ply, "m_hMyWeapons", i)
 					if (!ValidEntity(wep)) {
@@ -55,7 +57,7 @@ function OnPostSpawn() {
 					local classname = wep.GetClassname()
 					local trimmed_name = classname.slice(10, classname.len())
 
-					wep.AddAttribute("move speed bonus", zWeapons.class_speeds[ply.GetPlayerClass()], 0)
+					// wep.AddAttribute("CARD: move speed bonus", (zWeapons.class_speeds[pclass] / zWeapons.base_class_speeds[pclass]), -1)
 
 					if (trimmed_name in zWeapons) {
 						local config = zWeapons[trimmed_name]

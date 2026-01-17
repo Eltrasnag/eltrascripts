@@ -5,9 +5,16 @@ FullFocus <- true
 
 ItemName <- "The Physics Gun"
 AllowedCarryables <- ["prop_physics", "prop_physics_multiplayer", "prop_physics_override", "func_physbox", "prop_ragdoll", "player"]
+iMuzzleAttachID <- self.LookupAttachment("core")
 
-MaximumMass <- 1000
-
+GrabDistance <- 0
+hTarget <- null
+iCooldownAdd <- 4
+iItemFreezeTime <- iCooldownAdd
+Convars.SetValue("sv_turbophysics", 0)
+FollowMode <- ZITEM_FOLLOWMODES.MODERN
+MaximumMass <- 10000
+GrabOffset <- Vector()
 AttackKey <- ZITEM_ATTACKKEYS.LMB
 // CarryFailTime <-
 iOffsetForward <- 10
@@ -48,19 +55,17 @@ hSoundPlayer <- Spawn("ambient_generic", {
 	sourceentityname = self.GetName()
 })
 
-iMuzzleAttachID <- self.LookupAttachment("core")
 
-GrabDistance <- 0
-hTarget <- null
-iCooldownAdd <- 4
-Convars.SetValue("sv_turbophysics", 0)
-FollowMode <- ZITEM_FOLLOWMODES.MODERN
 
 // function OnPostSpawn() {
 // 	printl("who will run first?!?!?!? find out...")
 // 	SetParentEX(FXBeam, self, "core")
 // }
 // hTargetGlow <- Spawn // tf glow doesnt work the way i thought it did :/
+
+
+ANGLE_ROTATE_RATE <- 100
+
 function CarryThink() {
 	ActiveThink() // do the regular think stuff before our custom routine
 
@@ -77,13 +82,13 @@ function CarryThink() {
 
 
 	// let's get to work.
-
 	local vCarriedPos = hTarget.GetOrigin()
+
 	local vOrigin = self.GetOrigin()
 	local vEyePos = hOwner.EyePosition()
 	local vEyeAng = hOwner.EyeAngles()
 
-	local trace = QuickTrace(vEyePos, vEyePos + vEyeAng.Forward() * iMaxShootDistance, self)
+	local trace = QuickTrace(vEyePos, vEyePos + vEyeAng.Forward() * iMaxShootDistance, self, MASK_SHOT_HULL)
 
 	local nextvec = vEyePos + vEyeAng.Forward() * GrabDistance
 	local tracedist = GetDistance(trace.startpos, trace.pos)
@@ -94,10 +99,37 @@ function CarryThink() {
 
 	}
 
-	local lerpvec = nextvec - vCarriedPos
+	if (ButtonPressed(hOwner, IN_USE)) { // pls change to in_reload for the main release
+		// printl("reloading")
+		// hTarget.SetForwardVector(vEyeAng.Forward() - hTarget.GetForwardVector())
+		// hOwner.SetAbsVelocity(0, 0, 0)
+		// if (hOwner.GetMoveType() == Constants.EMoveType.MOVETYPE_WALK)
+		// hOwner.SetMoveType(Constants.EMoveType.MOVETYPE_CUSTOM, Constants.EMoveCollide.MOVECOLLIDE_DEFAULT)
+		// local hVel = hOwner.GetAbsVelocity()
+		// hVel.x -= hVel.x
+		// hVel.y -= hVel.y
+		// hOwner.SetAbsVelocity(hVel)
+		// vec = Vector(vec.Pitch(), vec.Yaw(), vec.Roll())
+		// vec *= vEyeAng.Forward()
+		// hTarget.KeyValueFromVector("angles", vec)
+		// hTarget.SetLocalAngles(vec)
+		// hTarget.SetPhysAngularVelocity()
+		GrabOffset = vEyeAng - hTarget.GetAbsAngles()
+
+	}
+	else {
+		local vec = QuaternionSlerp(hTarget.GetAbsAngles().ToQuat(), (vEyeAng - GrabOffset).ToQuat() , 0.05).ToQAngle()
+		hTarget.SetAngles(vec.x, vec.y, vec.z)
+	}
+	hTarget.SetPhysAngularVelocity(Vector())
+	// } else if (hOwner.GetMoveType() == MOVETYPE_CUSTOM) {
+		// hOwner.SetMoveType(Constants.EMoveType.MOVETYPE_WALK, Constants.EMoveCollide.MOVECOLLIDE_DEFAULT)
+//
+	// }
+
+	local lerpvec = nextvec - (vCarriedPos)
 	// local lerpvec = vLerp(vCarriedPos, nextvec, 0.5)
 	local vdiff = (nextvec - vCarriedPos) * 10
-	printl(vdiff)
 	CleanString(vdiff.tostring())
 
 	hTarget.SetAbsVelocity(vdiff)
@@ -123,7 +155,7 @@ function CarryThink() {
 
 muzzleattachname <- "core"
 
-
+regex_physattach <- regexp("_physattach")
 function FireWeapon() {
 
 	if (Time() < flNextCooldownEnd) { // hack
@@ -188,7 +220,7 @@ function FireWeapon() {
 
 		local cname = ent.GetClassname()
 		// printl("hit ent: "+cname)
-		if ((ent.GetName().len() != 0) || (!cname in AllowedCarryables) || NetProps.GetPropFloat(ent, "m_fMass") >= MaximumMass) {
+		if ((ent.GetName().len() != 0 && !regex_physattach.search(ent.GetName())) || (!cname in AllowedCarryables) || NetProps.GetPropFloat(ent, "m_fMass") >= MaximumMass) {
 			return
 		}
 		QFireByHandle(FXBeam, "Start")
@@ -198,6 +230,7 @@ function FireWeapon() {
 		// SetParentEX(FXBeam, ent)
 		// printl("grab on")
 		hTarget = EyeTrace.enthit
+		GrabOffset = vEyeAng - hTarget.GetAbsAngles()
 
 		AddThinkToEnt(self, "CarryThink")
 	} else if (hTarget != null) { // grab off
@@ -217,7 +250,7 @@ function FireWeapon() {
 
 		if (ButtonPressed(hOwner, IN_ATTACK2)) {
 			DisableMotion(hTarget)
-			QFireByHandle(hTarget, "enablemotion", "", 4)
+			QFireByHandle(hTarget, "enablemotion", "", iItemFreezeTime)
 			flNextCooldownEnd = Time() + iCooldownAdd
 		} else {
 			flNextCooldownEnd = Time() + 0.25

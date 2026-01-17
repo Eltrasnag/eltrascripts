@@ -3,7 +3,8 @@ IncludeScript("eltrasnag/mapfunc.nut")
 const PLAYER_BANKCOLOR = "5 123 98"
 ::tCharacters <- {"grandma" : "238 116 252"}
 Convars.SetValue("sv_turbophysics", 0)
-function OnPostSpawn() {
+::MapWelds <- []
+function MapSpawn() {
 	ze_map_say("== "+GetMapName().toupper()+" ==")
 	QFireByHandle(self, "RunScriptCode", "ze_map_say(`== MADE BY ELTRA ==`)", 2)
 	QFireByHandle(self, "RunScriptCode", "ze_map_say(`== PORTED BY ELTRA ==`)", 4)
@@ -11,25 +12,26 @@ function OnPostSpawn() {
 	QFireByHandle(self, "RunScriptCode", "ze_map_say(`== HUMBLED BY ELTRA ==`)", 8)
 	QFireByHandle(self, "RunScriptCode", "ze_map_say(`== ze_parkour_paradise - map by wo0 ==`)", 10)
 
+	local fool;
+	while (fool = Entities.FindByClassname(fool, "player")) {
+		FoolsPlayerSetup(fool)
+	}
 	ShittyListenHooks({
 		function OnGameEvent_player_spawn(params) {
 			local ply = GetPlayerFromUserID(params.userid)
-			NetProps.SetPropString(ply, "m_iszResponseContext", "")
-
-			ply.ValidateScriptScope()
-			local pscope = ply.GetScriptScope()
-			ply.ValidateScriptScope()
-			pscope = ply.GetScriptScope()
-			IncludeScript("eltrasnag/fools26/player.nut", pscope)
-			// if ("OnPostSpawn" in pscope) {
-			pscope.OnPostSpawn()
-				ply.ConnectOutput("OnPlayerSpawn", "OnPostSpawn")
-			// }
-
+			FoolsPlayerSetup(ply)
 		}
 	})
+	AddThinkToEnt(self, "MapThink")
 }
 
+
+function MapThink() {
+	local hWearable;
+	while (hWearable = Entities.FindByClassname(hWearable, "tf_wearable*")) {
+		hWearable.Kill()
+	}
+}
 ::CTFPlayer.GetMoney <- function() {
 	local context = this.GetContext()
 
@@ -38,4 +40,20 @@ function OnPostSpawn() {
 	}
 
 	return context.money
+}
+
+function FoolsPlayerSetup(ply) {
+	NetProps.SetPropString(ply, "m_iszResponseContext", "")
+
+	ply.ValidateScriptScope()
+	local pscope = ply.GetScriptScope()
+	IncludeScript("eltrasnag/fools26/player.nut", pscope)
+
+	ply.ValidateScriptScope()
+	pscope = ply.GetScriptScope()
+
+	if ("OnPostSpawn" in pscope)
+		pscope.OnPostSpawn()
+		ply.ConnectOutput("OnPlayerSpawn", "OnPostSpawn")
+
 }

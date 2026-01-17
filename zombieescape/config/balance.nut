@@ -1,13 +1,26 @@
 class_speeds <- {}
-class_speeds[Constants.ETFClass.TF_CLASS_SCOUT] <- 0.985
-class_speeds[Constants.ETFClass.TF_CLASS_SOLDIER] <- 1.05
-class_speeds[Constants.ETFClass.TF_CLASS_PYRO] <- 1.05
-class_speeds[Constants.ETFClass.TF_CLASS_DEMOMAN] <- 1.045
-class_speeds[Constants.ETFClass.TF_CLASS_HEAVYWEAPONS] <- 1.05
-class_speeds[Constants.ETFClass.TF_CLASS_ENGINEER] <- 1.05
-class_speeds[Constants.ETFClass.TF_CLASS_MEDIC] <- 1.048
-class_speeds[Constants.ETFClass.TF_CLASS_SNIPER] <- 1.045
-class_speeds[Constants.ETFClass.TF_CLASS_SPY] <- 1.05
+
+
+base_class_speeds <- {}
+base_class_speeds[Constants.ETFClass.TF_CLASS_SCOUT] <- 400
+base_class_speeds[Constants.ETFClass.TF_CLASS_SOLDIER] <- 240
+base_class_speeds[Constants.ETFClass.TF_CLASS_PYRO] <- 300
+base_class_speeds[Constants.ETFClass.TF_CLASS_DEMOMAN] <- 280
+base_class_speeds[Constants.ETFClass.TF_CLASS_HEAVYWEAPONS] <- 230
+base_class_speeds[Constants.ETFClass.TF_CLASS_ENGINEER] <- 300
+base_class_speeds[Constants.ETFClass.TF_CLASS_MEDIC] <- 320
+base_class_speeds[Constants.ETFClass.TF_CLASS_SNIPER] <- 300
+base_class_speeds[Constants.ETFClass.TF_CLASS_SPY] <- 320
+
+class_speeds[Constants.ETFClass.TF_CLASS_SCOUT] <- 292.50
+class_speeds[Constants.ETFClass.TF_CLASS_SOLDIER] <- 256.50
+class_speeds[Constants.ETFClass.TF_CLASS_PYRO] <- 270.00
+class_speeds[Constants.ETFClass.TF_CLASS_DEMOMAN] <- 252.00
+class_speeds[Constants.ETFClass.TF_CLASS_HEAVYWEAPONS] <- 256.50
+class_speeds[Constants.ETFClass.TF_CLASS_ENGINEER] <-270.00
+class_speeds[Constants.ETFClass.TF_CLASS_MEDIC] <- 282.50
+class_speeds[Constants.ETFClass.TF_CLASS_SNIPER] <- 270.00
+class_speeds[Constants.ETFClass.TF_CLASS_SPY] <- 288.00
 
 noconds <- []
 // Below are the weapon balancing entries.

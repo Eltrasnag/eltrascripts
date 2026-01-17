@@ -4,9 +4,10 @@ ItemName <- "NoItemName"
 
 Disabled <- false
 
-enum ZITEM_FOLLOWMODES{CLASSIC, MODERN, SKIAL, FLAG}
+
 
 FollowMode <- ZITEM_FOLLOWMODES.MODERN
+
 
 
 FullFocus <- false // enable to make player only able to use the gun
@@ -22,7 +23,6 @@ iCooldownAdd <- 1
 vNoAngle <- QAngle(0,90,0)
 vRootOrigin <- self.GetOrigin()
 
-enum ZITEM_ATTACKKEYS{LMB = 1, RMB = 2048, DUAL = 2049}
 AttackKey <- ZITEM_ATTACKKEYS.RMB
 
 Shootables <- ["base_boss", "player"] // entities which we can shoot, to kill
@@ -93,6 +93,7 @@ function MakeDummyParent(player) {
 
 	hDummyParent.DisableDraw()
 	NetProps.SetPropInt(hDummyParent, "m_nRenderMode", 10)
+
 	NetProps.SetPropInt(hDummyParent, "m_fEffects", Constants.FEntityEffects.EF_BONEMERGE + Constants.FEntityEffects.EF_BONEMERGE_FASTCULL)
 	NetProps.SetPropInt(hDummyParent, "m_fEffects", Constants.FEntityEffects.EF_NOSHADOW)
 	// hDummyParent.DisableDraw()
@@ -110,7 +111,7 @@ function MakeDummyParent(player) {
 // }
 function OnPostSpawn() {
 	Init() // this allows sub-scripts to do their own postspawn functions.
-
+	CustomSpawn() // ugh
 	MarkForPurge(self)
 	NetProps.SetPropFloat(self, "m_flMassOverride",  70)
 	local vOrigin = self.GetOrigin()
@@ -170,7 +171,7 @@ function DroppedThink() {
 }
 
 idle_think_rate_high <- -1
-idle_think_rate_low <- 0.2
+idle_think_rate_low <- 0.05
 idle_think_rate <- idle_think_rate_low
 
 function IdleThink() {
@@ -569,5 +570,9 @@ function CustomDrop() {
 }
 
 function CustomThink() {
+
+}
+
+function CustomSpawn() {
 
 }

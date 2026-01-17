@@ -1,7 +1,7 @@
 IncludeScript("eltrasnag/zombieescape/zeitem.nut", this)
 
 
-FullFocus <- true
+// FullFocus <- true
 ItemName <- "The Gravity Gun"
 AllowedCarryables <- ["prop_physics", "prop_physics_multiplayer", "prop_physics_override", "func_physbox", "prop_ragdoll"]
 // CarryFailTime <-
@@ -18,7 +18,8 @@ FXCore <- Spawn("info_particle_system", {
 	start_active = true,
 })
 
-MaximumMass <- 1000
+MaximumMass <- 250
+
 FXBeamTargetName <- UniqueString("_gravgunbeamfx")
 beamparticlename <- "cic_gravgun_beam"
 FXBeamTarget <- Spawn("info_particle_system", {
@@ -242,7 +243,7 @@ function FireWeapon() {
 
 		local cname = ent.GetClassname()
 		// printl("hit ent: "+cname)
-		if ((ent.GetName().len() != 0) || !(cname in AllowedCarryables) || NetProps.GetPropFloat(ent, "m_fMass") >= MaximumMass) {
+		if ((!cname in AllowedCarryables) || (ent.GetName().len() != 0) || NetProps.GetPropFloat(ent, "m_fMass") > MaximumMass) {
 			return
 		}
 		ent.SetCollisionGroup(Constants.ECollisionGroup.COLLISION_GROUP_INTERACTIVE_DEBRIS)
@@ -256,6 +257,8 @@ function FireWeapon() {
 		hTarget = EyeTrace.enthit
 		// DisablePlayerWeapons(hOwner)
 		AddThinkToEnt(self, "CarryThink")
+		DisablePlayerWeapons(hOwner)
+
 	} else if (hTarget != null) { // grab off
 		EnablePlayerWeapons(hOwner)
 		// FXBeam.SetAbsOrigin(EyeTrace.pos)

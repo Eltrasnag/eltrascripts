@@ -3,6 +3,8 @@ SHOP_ITEMTEMPLATENAME <- "tem_none"
 SHOP_ITEMTEMPLATE <- null;
 SHOP_ITEMPRICE <- 0
 
+
+
 players <- {}
 poorheads <- {}
 
@@ -37,24 +39,17 @@ function Think() {
 			local cash
 
 			if (!("money" in context))
-				// SetContext(ply, "money", 0)
 				context.money <- 0
-				// context = ply.GetContext()
-				// __DumpScope(1, context)
 
 
 			cash = context.money
 			if (cash < SHOP_ITEMPRICE) { // player can't afford item
-				// ClientPrint(ply, EHudNotify, ">> You are too poor to afford this item. <<")
 				DoDialogueOnClient(ply, "Uh oh, looks like you're too poor for that one! Come back when you're a little bit more.... Penniful.", "grandma")
-
-				// poorheads[ply] <- ply // this might be unneccessasry actually
 				delete players[ply]
 				continue;
 			}
 
 			if (cash >= SHOP_ITEMPRICE) {
-				// QAcceptInput(SHOP_ITEMTEMPLATE, "ForceSpawn")
 				QFireByHandle(SHOP_ITEMTEMPLATE, "ForceSpawn")
 				SetContext(ply, "money", cash - SHOP_ITEMPRICE)
 				DoDialogueOnClient(ply, "We appreciate your purchase!", "grandma")

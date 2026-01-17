@@ -7,12 +7,15 @@
 // 	::GAMEEVENTS <- {}
 // }
 // GAMEEVENTS.clear()
-
+enum ZITEM_FOLLOWMODES{CLASSIC, MODERN, SKIAL, FLAG}
+enum ZITEM_ATTACKKEYS{LMB = 1, RMB = 2048, DUAL = 2049}
 
 ::css_scale <- true,
 ::css_scale_normal <- 1,
-::css_scale_skial <- 0.70,
-::css_scale_accurate <- 0.865 // but can't fit through doors!
+// ::css_scale_skial <- 0.70,
+// ::css_scale_skial <- 0.7111111111111111
+::css_scale_skial <- 0.67
+::css_scale_accurate <- 0.71 // but can't fit through doors!
 ::ROOT <- getroottable()
 const DIALOGUE_CHAR_TIME = 0.02
 const DIALOGUE_HOLD_TIME = 3
@@ -686,7 +689,9 @@ function DialogueThink() {
 	}
 	return false
 }
-::ButtonPressed <- ButtonPressed
+::CTFPlayer.ButtonPressed <- function(iButton) {
+	return getroottable().ButtonPressed(this, iButton)
+}
 
 ::SetMapFX <- function(nam) {
 	SetFXScene(nam)
@@ -733,15 +738,14 @@ function DialogueThink() {
 	local wep = null
 	local context = GetContext(ply)
 	if ("ActiveWeaponSlot" in context) {
-		// slot = context.ActiveWeaponSlot
 		wep = EntIndexToHScript(context.ActiveWeaponSlot)
 		printl("Slotty "+wep)
 	} else {
-		wep = NetProps.GetPropEntityArray(ply, "m_hMyWeapons", 0)
+		// can't we just return normally here?
+		return
+		// wep = NetProps.GetPropEntityArray(ply, "m_hMyWeapons", 0)
 	}
 
-	// NetProps.SetPropEntity(ply, "m_hActiveWeapon", NetProps.GetPropEntityArray(ply, "m_hMyWeapons", slot));
-	// NetProps.SetPropEntity(ply, "m_hActiveWeapon", NetProps.GetPropEntityArray(ply, "m_hMyWeapons", slot));
 	NetProps.SetPropEntity(gameui, "m_player", ply);
 
 
@@ -874,13 +878,15 @@ function DialogueThink() {
 	return ldir
 }
 
-::GetLookVector2 <- function(v1, v2) {
+::GetLookVector2 <- function(v1, v2) { // TRUE REAL LOOK ANGLE THING
 	local ba = v2;
 	local aa = v1;
 	local ldir = (aa - ba);
 	ldir.Norm();
 	return ldir
 }
+
+::LookAngles <- GetLookVector2
 
 ::GetLookAngle <- function(from_origin, to_origin) // the above function done infinitely better
 {

@@ -96,7 +96,7 @@ MAPFUNC.PlayerSpawn <- function(ply) {
 	ply.SetScriptOverlayMaterial("")
 	SetItemUser(ply, false)
 	if (MAPFUNC.DoSourceScaling == true) {
-		ply.SetModelScale(css_scale_value,0)
+		ply.SetModelScale(css_scale_accurate,0)
 	}
 
 }
@@ -117,11 +117,14 @@ function Precache() { // Do not crash or i will kill myself NOW
 	ListenHooks(funcevents)
 }
 function OnPostSpawn() {
+	QFireByHandle("bignet", "Kill")
 	if (DEVELOPER_MODE == true && MAPFUNC.DoZombieEscape == true) {
 		DoZombieEscape()
 	}
 	NetProps.SetPropInt(Entities.First(), "m_takedamage", 1)
-	MapSpawn()
+
+	MapSpawn() // all mapsys scripts should use this instead of OnPostSpawn going forward
+
 }
 
 function DoZombieEscape() { // activate the fake ZE testing ""plugin""
