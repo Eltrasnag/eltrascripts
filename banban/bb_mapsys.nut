@@ -4,12 +4,15 @@
 // !CompilePal::IncludeFile("sound/eltra/pussy.mp3")
 // !CompilePal::IncludeFile("sound/music/eltra/banban_targetted.mp3")
 
+IncludeScript("eltrasnag/mapfunc.nut", this)
+IncludeScript("eltrasnag/fmv.nut", this)
+
 self.ValidateScriptScope()
 ::MapMaxApples <- 0
 ::MapApples <- 0
 ::MapFatty <- false
 
-ELTMAP.MapFog <- "fog_banban"
+::MapFog <- "fog_banban"
 
 bShouldLive <- false
 
@@ -22,6 +25,7 @@ iBridge2Players <- 0
 vCheeseDest <- null
 vCheeseDestCheckpoint <- Vector(4966, 2151, -750)
 
+::spawn_origin <- Entities.FindByName(null, "spawn_origin").GetOrigin()
 
 ::MapSys <- self.GetScriptScope()
 function MapCreds()
@@ -61,7 +65,7 @@ function ButtonChallenge() {
 		for (local ply; ply = Entities.FindByClassname(ply, "player");) {
 			Jumpscare(ply)
 			if (ply.GetTeam() == (TEAMS.HUMANS)) {
-				ply.TakeDamage(999999999, Constants.FDmgType.DMG_DISSOLVE, null)
+				ply.TakeDamage(999999999, DMG_DISSOLVE, null)
 
 			}
 		}
@@ -79,22 +83,23 @@ function ButtonChallenge() {
 
 if (!("Events" in getroottable())) {
 		getroottable().Events <- {
-				OnGameEvent_recalculate_holidays = function(event) {
-					PlayerGuard()
+				OnGameEvent_round_end = function(event) {
+					printl("round end event")
+					MAPFUNC.PlayerGuard()
 				}
 
 				OnGameEvent_player_death = function(params) {
-					if (!(params.death_flags & 32)){
+					if (GAME_IS_TF2 && !(params.death_flags & 32)){
 						deathfunc(GetPlayerFromUserID(params.userid))
 					}
 				}
 
 				OnGameEvent_scorestats_accumulated_update = function(event) {
-					PlayerGuard()
+					MAPFUNC.PlayerGuard()
 				}
 
 				OnGameEvent_scorestats_accumulated_reset = function(event) {
-					PlayerGuard()
+					MAPFUNC.PlayerGuard()
 				}
 		}
 		RegisterScriptGameEventListener("recalculate_holidays")
@@ -118,24 +123,25 @@ function SetSandstorm(enabled) {
 	}
 }
 
-function MAPFUNC.SetFog(fog_name) {
-	ELTMAP.MapFog = fog_name
+function SetFog(fog_name) {
+	::MapFog = fog_name
 	QFire("player","setfogcontroller",fog_name)
 }
 
 function OnPostSpawn()
 {
-
+	// DEV = true;
+	QFire("player", "SetModelScale", "1")
 	SetSkyboxTexture("banban_surreal")
 	QFireByHandle(self,"RunScriptCode","MAPFUNC.SetFog(`fog_banban`)",1)
 	QFire("cmd","Command","sv_airaccelerate 150")
 	// QFire("player*", "RunScriptCode", "")
 	switch (MapStage) {
 		case 0:
-			if (!DEV) { // hello my name is mato
+			// if (!DEV) { // hello my name is mato
 
 				QFire("diarrhea", "Trigger");
-			}
+			// }
 			break;
 
 		case 1:
@@ -144,11 +150,15 @@ function OnPostSpawn()
 			QFire("tem_stage2","ForceSpawn")
 			QFire("s2_movers*", "open")
 			QFireByHandle(self, "RunScriptCode", "vCheeseDest = Entities.FindByName(null, `s2_valleydest`).GetOrigin()", 0.1)
+			local start_delay = 0
 			if (bFirstStage2) {
-				tpdelay = 36
-				QFire("sf_eltra_terms","PlaySound")
+				start_delay = 24
+				DoFMVSequence("banban_lois_frames/banban_lois_frame_", 192, 8, "banban_lois.mp3")
+				tpdelay = 36 + start_delay
+				QFire("sf_eltra_terms","PlaySound", "", start_delay)
 				QFire("sf_eltra_terms","StopSound","",tpdelay)
-				QFire("round_timer", "SetTime","45",0.1)
+				// QFire("round_timer", "SetTime","45",0.1)
+				QFire("cmd", "mp_roundtime 45")
 				bFirstStage2 = false
 			}
 			QFire("mapsys", "RunScriptCode", "ze_map_say(`BAN BAN STAGE.............. TWO`)", tpdelay);
@@ -179,7 +189,7 @@ function OnPostSpawn()
 }
 
 function SetCart(activator, entering = false) {
-	if (IsInWaitingForPlayers()) {
+	if (GAME_IS_TF2 && IsInWaitingForPlayers()) {
 		return;
 	}
 
@@ -328,11 +338,12 @@ function CartThink() {
 function LHPizza(activator) {
 	PlaySoundEX("eltra/lois_text.mp3", activator.GetOrigin())
 	activator.SetAbsVelocity(Vector(RandomInt(-3000,3000), RandomInt(-3000,3000), RandomInt(300,3000)))
-	activator.TakeDamage(32, Constants.FDmgType.DMG_DISSOLVE, null);
+	activator.TakeDamage(32, DMG_DISSOLVE, null);
 }
 
 ::DEV_TP_ALL <- function(activator) {
 	for (local ply; ply = Entities.FindByClassname(ply, "player");) {
+		printl("hello")
 		ply.SetAbsOrigin(activator.GetOrigin() + Vector(RandomFloat(-512, 512), RandomFloat(-512, 512), 0));
 	}
 }
@@ -396,7 +407,9 @@ function SandstormThink() {
 function CheeseSet(activator, enabled) {
 	switch (enabled) {
 		case true:
-		activator.AddCond(Constants.ETFCond.TF_COND_INVULNERABLE_HIDE_UNLESS_DAMAGED)
+			if (GAME_IS_TF2) {
+				activator.AddCond(Constants.ETFCond.TF_COND_INVULNERABLE_HIDE_UNLESS_DAMAGED)
+			}
 		// activator.AddCond(75)
 		activator.GetScriptScope().CheeseThink <- CheeseThink
 		AddThinkToEnt(activator, "CheeseThink");
@@ -410,14 +423,19 @@ function CheeseSet(activator, enabled) {
 				activator.SetHealth(200)
 
 			}
-			activator.RemoveCond(Constants.ETFCond.TF_COND_INVULNERABLE_HIDE_UNLESS_DAMAGED)
+			if (GAME_IS_TF2) {
+				activator.RemoveCond(Constants.ETFCond.TF_COND_INVULNERABLE_HIDE_UNLESS_DAMAGED)
+			}
 			// activator.RemoveCond(75)
 		break;
 	}
 }
 
 function CheeseThink() {
-	self.AddCond(Constants.ETFCond.TF_COND_INVULNERABLE_HIDE_UNLESS_DAMAGED)
+	if (GAME_IS_TF2) {
+		self.AddCond(Constants.ETFCond.TF_COND_INVULNERABLE_HIDE_UNLESS_DAMAGED)
+	}
+
 	if (self.GetTeam() == TEAMS.HUMANS) {
 		self.SetHealth(80000)
 
@@ -428,7 +446,7 @@ function CheeseThink() {
 function FakeTP(activator, dest_name) { // avoid player void bug caused by normal tps
 	local dest = Entities.FindByName(null, dest_name)
 	SetCart(activator, false)
-	activator.SetAbsOrigin(dest.GetOrigin())
+	activator.SetOrigin(dest.GetOrigin())
 	activator.SetAbsAngles(dest.GetAbsAngles())
 }
 function CheeseWin(activator) {
@@ -472,7 +490,7 @@ function CheeseWin(activator) {
 				ze_map_say("EPIC ZOMBIE WIN!!!!!!!!!!! BETTER LUCK NEXT TIME SLOWHEADS")
 				for (local ply; ply = Entities.FindByClassname(ply, "player");) {
 					if (ply.GetTeam() == TEAMS.HUMANS) {
-						ply.TakeDamage(99999999, Constants.FDmgType.DMG_DISSOLVE, null);
+						ply.TakeDamage(99999999, DMG_DISSOLVE, null);
 						Jumpscare(ply)
 					}
 				}
@@ -486,7 +504,7 @@ function bruhstorm() { // it was causing an error in runscriptcode and i dont ha
 
 function KillBerke(activator) {
 	if (NetProps.GetPropString(activator, "m_szNetworkIDString") == "[U:1:190285622]") {
-		activator.TakeDamage(999999999, Constants.FDmgType.DMG_BLAST, null)
+		activator.TakeDamage(999999999, DMG_BLAST, null)
 	}
 }
 
@@ -548,18 +566,39 @@ function MapperHax(activator) {
 function MapperThink() { // bottle simulator
 	if (ButtonPressed(self, IN_DUCK) && ButtonPressed(self, IN_JUMP)) {
 		if (!self.IsNoclipping()) {
-			self.SetMoveType(Constants.EMoveType.MOVETYPE_NOCLIP, Constants.EMoveCollide.MOVECOLLIDE_DEFAULT)
+			self.SetMoveType(MOVETYPE_NOCLIP, MOVECOLLIDE_DEFAULT)
 		}
 		else
 		{
-			self.SetMoveType(Constants.EMoveType.MOVETYPE_WALK, Constants.EMoveCollide.MOVECOLLIDE_DEFAULT)
+			self.SetMoveType(MOVETYPE_WALK, MOVECOLLIDE_DEFAULT)
 		}
 
 	}
 }
 
 function EltraTP(activator) {
-	if (NetProps.GetPropString(activator,"m_szNetworkIDString") == ELTRA_STEAMID) {
+	if (NetProps.GetPropString(activator,"m_szNetworkIDString") == ELTRA_STEAMID && (!GAME_IS_TF2)) {
 		FakeTP(activator, "e_dest")
 	}
+}
+
+
+function BluWin() {
+	for (local i; i = Entities.FindByClassname(i, "player");) {
+		if (i.GetTeam() != TEAMS.HUMANS) {
+			i.TakeDamage(99999, 0, null)
+		}
+	}
+}
+
+function RedWin() {
+	for (local i; i = Entities.FindByClassname(i, "player");) {
+		if (i.GetTeam() != TEAMS.ZOMBIES) {
+			i.TakeDamage(99999, 0, null)
+		}
+	}
+}
+
+::GoToSpawn <- function() {
+	self.SetOrigin(spawn_origin)
 }

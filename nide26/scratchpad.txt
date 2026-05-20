@@ -1,0 +1,15 @@
+ent_fire !self runscriptcode " printl(`PermaVars` in getroottable())
+
+ent_fire !self runscriptcode " __DumpScope(1, getroottable())
+ent_fire !self runscriptcode " foreach (i, tbl in getroottable()) { dprintl(i)  }
+
+ent_fire !self runscriptcode "
+if (`MAPSYS` in getroottable()) {
+    printl(`yep`)
+    foreach (i, func in MAPSYS) {
+        dprintl(i) 
+        }
+}
+
+
+ent_fire !self runscriptcode "foreach (i, func in getroottable().CBasePlayer) { dprintl(i) }

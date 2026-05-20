@@ -1,7 +1,7 @@
 iType <- null;
 iPaired <- null;
 hGunScope <- null;
-
+fl_DeathTime <- Time() + PORTAL_MAX_LIFETIME;
 iTimer <- 0;
 vForV <- null;
 vPortalColor <- null;
@@ -31,7 +31,7 @@ const SND_PORTAL_PASS = "eltra/portal_enter1.mp3"
 
 const PORTAL_COOLDOWN_LENGTH = 2
 const MODEL_SCALE_ITERATOR = 0.01
-const PORTAL_MAX_LIFETIME = 120
+const PORTAL_MAX_LIFETIME = 4
 const PORTAL_TELEPORT_RADIUS = 32
 const PORTAL_SPAWN_TIME = 0.25
 
@@ -52,8 +52,12 @@ function OnPostSpawn() { // YEP
 
 
 function Think() {
-	try {
+	// try {
 
+		if (!ValidEntity(self)) {
+			AddThinkToEnt(self, "")
+			return -1
+		}
 		local vecOrigin = self.GetOrigin()
 
 
@@ -105,11 +109,11 @@ function Think() {
 						if (ValidEntity(hPaired) && ValidHandle(hGunScope)) {
 
 
-							if (hClass == "player") {
-								if (!(hPlayer.GetScriptScope().iPlayerHClass == HCLASSES.LI_CLASS_MEL || hPlayer.GetTeam() == TEAMS.ZOMBIES)) {
-									return -1
-								}
-							}
+							// if (hClass == "player") {
+								// if (!(hPlayer.GetScriptScope().iPlayerHClass == HCLASSES.LI_CLASS_MEL || hPlayer.GetTeam() == TEAMS.ZOMBIES)) {
+									// return -1
+								// }
+							// }
 
 
 							local hPairedScope = hPaired.GetScriptScope()
@@ -120,6 +124,8 @@ function Think() {
 							local vBeforeOrigin = hPlayer.GetOrigin()
 							local vAfterOrigin = hPaired.GetOrigin() + (hPaired.GetForwardVector() * PORTAL_TELEPORT_RADIUS * 2.0)
 							hPlayer.SetAbsOrigin(vAfterOrigin)
+
+
 							// hPlayer.KeyValueFromVector("origin", vAfterOrigin)
 							if (TraceLine(vAfterOrigin, vAfterOrigin + Vector(0, 0, 1), hPlayer) != 1) {
 								hPlayer.SetAbsOrigin(vBeforeOrigin)
@@ -134,17 +140,27 @@ function Think() {
 							local vPlayerSpeed = clamp(hPlayer.GetAbsVelocity().Length(), 0, 1000)
 							local vNewVelocity = Vector(qPairedForward.x, qPairedForward.y, qPairedForward.z) * vPlayerSpeed.tointeger();
 
-							if (hClass == "player") {
+							// if (hClass == "player") {
+							hPlayer.SetAbsOrigin(vAfterOrigin)
+							hPlayer.SetPhysVelocity(vNewVelocity)
+							ScreenFade(hPlayer, hPairedScope.vPortalColor.x, hPairedScope.vPortalColor.y, hPairedScope.vPortalColor.z, 255, 0.2, 0.0, 1)
+							// for (local i = 0; i < 50; i++) {
+							// local s_ang = hPlayer.EyeAngles()
+							// local e_ang = LookingAt(hPaired, vAfterOrigin + qPairedForward)
 
-								ScreenFade(hPlayer, hPairedScope.vPortalColor.x, hPairedScope.vPortalColor.y, hPairedScope.vPortalColor.z, 255, 0.2, 0.0, 1)
+							// hPlayer.SnapEyeAngles( e_ang - (s_ang))
+							// dprintl(hPlayer.EyeAngles())
+
 								hPlayer.SnapEyeAngles(qPairedAngles)
+								// hPlayer.SnapEyeAngles(ApproacshAngle3D(self.GetAbsAngles(), hPlayer.EyeAngles(), 0.25))
+
+							// }
 
 								hPlayer.SetAbsVelocity(vNewVelocity)
-							}
-							else {
-								hPlayer.SetOrigin(vAfterOrigin)
-								hPlayer.SetPhysVelocity(vNewVelocity)
-							}
+							// }
+							// else {
+
+							// }
 
 
 
@@ -159,8 +175,8 @@ function Think() {
 				}
 			}
 		iTeleportCooldown++
-		iTimer++
-		if (iTimer >= PORTAL_MAX_LIFETIME) {
+		// iTimer++
+		if (Time() >= fl_DeathTime) {
 			PlaySound(SND_PORTAL_CLOSE, vecOrigin)
 			self.Kill()
 			// if (ValidHandle(hGunScope) && ValidEntity(hGunScope.aPortals[iType])) {
@@ -168,14 +184,10 @@ function Think() {
 			// }
 
 		}
-	} catch (exception){
-		printl("Inshallah the portal system has errored but nobody needs to know that:D")
-		// printl("\n\nPORTAL ERROR: DUMPING...\n\n\n")
-		// printl("iTimer : "+iTimer.tostring())
-		// printl("vForV : "+vForV.tostring())
-		// printl("vPortalColor : "+vPortalColor.tostring())
-		// printl("iPaired : "+iPaired.tostring())
-		// printl("\n\nEXCEPTION: \n"+exception)
-	}
-	return 0.05
+	// } catch (exception){
+		// printl("Inshallah the portal system has errored but nobody needs to know that:D")
+
+	// }
+	// return 0.05
+	return -1
 }

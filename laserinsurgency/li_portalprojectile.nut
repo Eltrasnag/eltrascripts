@@ -1,4 +1,4 @@
-const PORTAL_PROJECTILE_SPEED = 80
+PORTAL_PROJECTILE_SPEED <- 80*2
 const SND_PORTAL_FAIL = "eltra/portal_invalid_surface3.mp3"
 const MAX_LIFE_TIME = 40
 enum PORTALS {
@@ -6,6 +6,7 @@ enum PORTALS {
 	PORTAL2,
 }
 
+BANNED_SURFACES <- ["TOOLS/TOOLSSKYBOX"]
 // the horrible awful surface check
 const RAYDISTANCE = 4
 enum RAYDIRECTIONS {
@@ -26,96 +27,98 @@ Vector(0,0,-1)]
 
 
 vecLastOrigin <- null;
-iTimer <- 0;
 qMoveAngles <- null;
 strOwnerID <- null;
 iPortalType <- null;
-hGunOwner <- null;
+fl_DeathTime <- 0;
+hOwner <- null;
 hGun <- null;
 vForward <- null;
+t_ShootTrace <- {};
 
 function OnPostSpawn() {
+	fl_DeathTime = Time() + 4
 	AddThinkToEnt(self, "Think")
 }
 
+
 function Think() {
-	local vecOrigin = self.GetOrigin()
+	// local vOrigin = self.GetOrigin()
+	local vOrigin = self.GetOrigin()
+	if (Time() >= fl_DeathTime) {
+		AddThinkToEnt(self, "")
+		FailDeath()
+		return -1
+	}
 
-	if (qMoveAngles != null && iPortalType != null && ValidHandle(hGunOwner) && iTimer < MAX_LIFE_TIME) {
+	if (t_ShootTrace != null && iPortalType != null && ValidEntity(hOwner)) {
+
+		// dprintl(t_ShootTrace.pos)
+		// local vNextOrigin = vOrigin + (qMoveAngles * PORTAL_PROJECTILE_SPEED)
+		local vNextOrigin = vOrigin + (GetMovementVector(t_ShootTrace.pos, vOrigin) * PORTAL_PROJECTILE_SPEED)
+
+		// {
+			// hit = null,
+			// start = vecLastOrigin,
+			// end = vNextOrigin,
+			// mask = 16395,
+			// ignore = self,
+			// }
 
 
-		local vNextOrigin = vecOrigin + (qMoveAngles * PORTAL_PROJECTILE_SPEED)
+		// local tTrace = QuickTrace(vecLastOrigin, vNextOrigin, h_Player)
+			// if (vecLastOrigin != null && ValidEntity(h_Player)) {
 
-
-		local tTrace = {
-		hit = null,
-		start = vecLastOrigin,
-		end = vNextOrigin,
-		mask = 16395,
-		ignore = self,
-		}
-
-
-		if (ValidHandle(vecLastOrigin)) {
-
-			TraceLineEx(tTrace)
+				// TraceLineEx(tTrace)
 			// DebugDrawLine(tTrace.start, tTrace.endpos, 255,255,255,false,0.5)
-		}
+		// }
 
 		self.KeyValueFromVector("origin", vNextOrigin)
 
-		if (tTrace.hit && "fraction" in tTrace && tTrace.fraction != 1) {
-
-			// getting the normal for portal placement
-			// this is the worst fucking way to do this ever but alas i did not take calc 3
-			local vecNormal = null
-
-			local vHitPos = tTrace.endpos
-
-			// get the """""surface normal""""" by doing 4 checks around the collision point
-			local aTraces = [];
-
-			for (local i = 0; i < 6; i++) {
-				aTraces.append(TraceLine(vHitPos, vHitPos + (aTraceOffsets[i] * 1), self))
+		// dprintl("Brup")
+		if ((GetDistance(vOrigin, t_ShootTrace.pos) < PORTAL_PROJECTILE_SPEED) && t_ShootTrace.hit == true && t_ShootTrace.enthit == Entities.First() && ValidEntity(hGun) && ValidEntity(hOwner)) {
+			if (BANNED_SURFACES.find(t_ShootTrace.surface_name) != null) {
+				AddThinkToEnt(self, "")
+				FailDeath()
+				return -1
 			}
 
-			for (local i = 0; i < 6; i++) {
+			local vecNormal = t_ShootTrace.plane_normal
+			self.LookAt(vOrigin + (t_ShootTrace.plane_normal))
 
-				local flTraceFrac = aTraces[i]
 
-				if (aTraces[i] != 1) {
-					vecNormal = aTraceOffsets[i]
-					break;
+			// if (ValidEntity(hGun) && ValidEntity(hOwner) && (QuickTrace(vOrigin, t_ShootTrace.pos).plane_dist) <= PORTAL_PROJECTILE_SPEED) {
+				dprintl("ok the portal hit")
+				hGun.ValidateScriptScope()
+				local paramstable = {
+					type = iPortalType,
+					endpos = t_ShootTrace.pos,
 				}
+				paramstable.trace <- t_ShootTrace
+				hGun.GetScriptScope().PortalHitSurface(paramstable)
+				AddThinkToEnt(self, "")
+				// FailDeath()
+				self.Kill()
+				return 0.1
+			// }
 
-				if (vecNormal == null && i == 5) {
-					PlaySound(SND_PORTAL_FAIL,vecOrigin)
-					self.Kill()
-					return
-				}
-
-			}
-
-			if (ValidEntity(hGun) && ValidHandle(hGunOwner) && vecNormal != null) {
-				hGun.GetScriptScope().PortalHitSurface({
-					"type" : iPortalType,
-					"forv" : vecNormal,
-					"endpos" : tTrace.endpos,
-				})
-			}
-
-			self.Kill()
-			return
 		}
-		vecLastOrigin = vecOrigin
+		// vecLastOrigin = vOrigin
 	}
 	else {
-		PlaySound(SND_PORTAL_FAIL,vecOrigin)
-		self.Kill()
-		return
+		dprintl("fail, ", ValidEntity(hOwner))
+		AddThinkToEnt(self, "")
+		FailDeath()
+		return 0.1
 	}
 
-	iTimer++
+	// iTimer++
 	return 0.1
 
+}
+
+function FailDeath() {
+	PlaySound(SND_PORTAL_FAIL, self.GetOrigin())
+	self.Kill()
+	return
 }

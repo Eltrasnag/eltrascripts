@@ -1,5 +1,5 @@
 // IncludeScript("eltrasnag/common.nut", this)
-IncludeScript("eltrasnag/mapfunc.nut")
+IncludeScript("eltrasnag/mapfunc.nut", this)
 
 // CHRIST IS COMING
 // A MAP BY ELTRA
@@ -62,6 +62,13 @@ IncludeScript("eltrasnag/mapfunc.nut")
 
 
 // ::SKIAL_MODE <- false
+
+
+::tCharacters <- {
+	"Mariah Carey": "255 150 255"
+}
+
+
 
 // helper vars for template spawning
 
@@ -757,7 +764,7 @@ function SetXMode(mode) {
 		local musent;
 
 		local mus_regex = regexp("mus_")
-		QFireByHandle(self, RunScriptCode, "SetXModeDelayed()", 6)
+		QFireByHandle(self, "RunScriptCode", "SetXModeDelayed()", 6)
 		// QFire("ambient_generic*", "pitch", XMODE_MUSIC_PITCH.tostring(), 6)
 		QFire("tem_xmode", "ForceSpawn") // all the "new" stage triggers and whatevers
 		SetSkyboxTexture("sky_frostbitten_")

@@ -1,0 +1,1 @@
+IncludeScript("eltrasnag/nide26/npc/friend.nut", this)

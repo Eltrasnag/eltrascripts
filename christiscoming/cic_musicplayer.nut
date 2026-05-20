@@ -27,12 +27,12 @@ TrackNames <- {"li_locomotion" : "KYLIE MINOGUE - The Locomotion",
 "i_touch_myself" : "DIVINYLS - I Touch Myself",
 "burning_rangers" : "BURNING RANGERS - BGM005",
 "mus_stage1_santadead" : "SONIC 3D BLAST - GENE GADGET ZONE, ACT II (SATURN)",
-"cic_mariah" : "Eltra - All Rise",
+// "cic_mariah" : "Eltra - All Rise",
 "cic_heat_rising" : "Eltra - Heat Rising",
 "the_christmas_mountain" : "Eltra - Christmas Mountain Pass",
 "familiar_factory": "Eltra - Re(port)ing for Duty",
 "viscosity" : "Eltra - Viscosity (The Hydroplant)",
-"anne_t_claus_was_him!!!" : "Eltra - N.T CLAWS WAS HIM?!!!",
+"anne_t_claus_was_him!!!" : "Eltra - N.T CLASS WAS HIM?!!!",
 "cic_act2start" : "Eltra - Premonition",
 "li_boss01" : "Eltra - A Million Dogs + 1",
 "cic_scannerwave" : "Eltra - Scannerwaves",
@@ -40,6 +40,9 @@ TrackNames <- {"li_locomotion" : "KYLIE MINOGUE - The Locomotion",
 "cic_fb_coldletter" : "Eltra - Cold Letter",
 "cic_fb_tidalbed" : "Eltra - Tidal Bed",
 "cic_fb_staywithme" : "Eltra - Stay With Me (Part II.)",
+"cic_mariahmassacre" : "Eltra - Mariah Massacre",
+"cic_mysteriousfigure" : "Eltra - Mysterious Figure",
+"cic_fb_angels_2" : "Eltra - All Angels",
 }
 XMODE_MUSIC_PITCH <- 80
 XTrackReplacements <- {
@@ -136,7 +139,7 @@ function GetPlayFile() { // what did he mean by this\
 
 function OnPostSpawn() {
 	// ShittyListenHooks(roundend)
-	QFireByHandle(self, RunScriptCode, "GetPlayFile()", 0.1) // add a tiny delay so that we can execute after xmode if applicable
+	QFireByHandle(self, "RunScriptCode", "GetPlayFile()", 0.1) // add a tiny delay so that we can execute after xmode if applicable
 
 
 
@@ -170,7 +173,7 @@ function InputPlaySound()
 	}
 	if (XMODE && hBooster)
 		QAcceptInput(hBooster, "Playsound")
-	NetProps.SetPropBool(self, "m_fLooping", false )
+	// NetProps.SetPropBool(self, "m_fLooping", false )
 	return true
 }
 

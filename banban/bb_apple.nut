@@ -36,7 +36,7 @@ function Think() {
 		for (local ply; ply = Entities.FindInSphere(ply, vOrigin, 128);) {
 			if (ply.IsPlayer() && ply.GetTeam() == TEAMS.HUMANS) {
 				ply.SetModelScale(clamp(ply.GetModelScale() + 0.2, 1,2), 2)
-				ClientPrint(ply,Constants.EHudNotify.HUD_PRINTTALK,"\x05You have gotten fatter")
+				ClientPrint(ply,HUD_PRINTTALK,"\x05You have gotten fatter")
 				self.AcceptInput("Break", "", null, null);
 			}
 		}

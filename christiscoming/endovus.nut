@@ -1,447 +1,364 @@
-// NOTE: THIS NPC USES THE TF2 DAMAGE SYSTEM AND SHOULD BE SCALED AS SUCH!
+IncludeScript("eltrasnag/npc/npc_base.nut")
+IncludeScript("eltrasnag/npc/bossfunc.nut")
 
-SF_HIT <- "eltra/ra_hit.mp3"
-SF_DEATH <- "eltra/ra_die.mp3"
-SF_AGGRESSION <- "eltra/ra_spotted2.mp3"
-vTrueZ <- self.GetOrigin().z + -100
-hTarget <- null
-iHealth <- 1500;
-iHealthAdd <- 2500
-iHealthPerSegment <- 1
-iHealthBarSegments <- 20
-QModelOffset <- QAngle(0,180,0)
-vBossBaseOffset <- Vector(0,0,256)
-// Visuals
-iBobDist <- 4 // distance to offset during hover
-iBobSpeed <-  2.5 // speed of hover bobbing
-iHoverHeight <- 256
-// hVisual <- MakeParticleSystem("lois_master", false)
-// hVisualSleeping <- MakeParticleSystem("lois_asleep", false)
-iTurnAccel <- 0.02
-iObstacles <- 0
-iMaxObstacles <- 10
-ROTATE_ANGLE <- QAngle(0,45,0)
+NPC_NAME <- "RENDERUS"
+iHealth <- 9999999999
+iHealthBase <- 1000
+iHealthAdd <- 4000
 
-iThisAttack <- 1
-iLastAttack <- -1
+ENDO_ORIGIN <- self.GetOrigin()
 
+ENDO_DEV <- false // ease of testing
+::ENDO_BOSS <- self
+::ENDO_NPCS <- 0
 
+NPC_AUTODECAY <- false
+NPC_IS_CLIFF_SMART <- false
+NPC_RESOLVES_COLLISIONS <- false
 
-iAttackCooldown <- 0.01; // player damage logic cooldown
-iNextAttackTime <- 0;
-DownVec <- Vector(0,0,-1)
-iNextBossAttack <- 0
-iBossAttackWait <- 5
-// iNextBossAttack <- 0
+NPC_TURNSPEED <- 13
 
-iDeathParticle <- "npc_gore01"
+NPC_TARGET_RADIUS <- 0
+NPC_GRAVITY <- 0
+ANIM_FOLLOW <- "move_walk"
+ANIM_DEATH <- "move_injured"
+ANIM_IDLE <- "move_stand"
 
-iAttackDamage <- 512
-iAttackRadius <- 500
+NPC_MOVEMENT_OVERRIDE <- true
 
-HitboxModelName <- BRUSHMODELS["endovus_hitbox"]
+NPC_ACCELERATION <- 1
+
+NPC_ATTACKSTRENGTH <- 20
+
+const STEP_INTERVAL_WALK = 0.5
+StepInterval <- STEP_INTERVAL_WALK
+NextStepTime <- 0
+DoFootstep <- false
+
+In_Cutscene <- true
 
 
-hBossBase <- SpawnEntityFromTable("base_boss", {
-		targetname = "Endovusd",
-		model = BRUSHMODELS["endovus_hitbox"], // can only safely do this in onpostspawn // was htis lie
-		health = 99999999,
-		maxhealth = 99999999,
-	})
 
-// Time between returns in the ActiveThink function
-iActiveDelta <- 0.05
 
-// Gameplay
 
-// If a player is within this radius, switch to ActiveThink mode
-// iAlertRadius <- 256
 
-// If we have waited this long without being activated, just kill ourselves
-// iSleepExpireTime <- 100
 
-// iSleepNextExpireTime <- 0
+enum ENDO_MODES{WALK, RUN, CHARGE, DEPLOY}
+ENDO_MODE <- ENDO_MODES.WALK
 
-// Radius to attack players in
+::ENDO_BOUNDS_MAX <- Vector()
+::ENDO_BOUNDS_MIN <- Vector()
+::ENDO_BOUNDS_MID <- Vector()
 
-// Movement-Related Values
-iFollowSpeed <- 400 // How fast should we follow player when fully accelerated
-iMinFollowSpeed <- 10 // Speed we should slow down to when player is in "mercy" range
+ENDO_CHARGE_SPEED <- 60
+ENDO_SPEED_WALK <- 300
+ENDO_SPEED_RUN <- 1000
 
-// Mercy
-iMercyDistanceMult <- 0.1// multiplier for the mercy distance
+//ENDO MOVEMENT STUFF
+ENDO_ORBIT_HEIGHT <- 256
+ENDO_ORBIT <- true
+ENDO_ORBIT_RADIUS <- 512
 
-// Acceleration
-iCurAccel <- 0
+ENDO_ATTACK_COOLDOWN <- 8
+ENDO_NEXT_ATTACK_TIME <- 0
+ENDO_NEXT_RETARGET_TIME <- 0
 
-iAccelRate <- 0.2 // How much to accelerate per tick
-iMaxAccel <- 2
+ENDO_DANGER_RADIUS <- 1000 // boss-specific danger radius for attacks
 
-UniqueName <- "NPC_ENDOVUS_"+UniqueString()
+ENDO_GRABBING_SPEED <- 50
+ENDO_GRABBING <- false
+ENDO_GRABBING_RADIUS <- 32
 
-vZero <- Vector(0,0,0)
+ENDO_DIVING <- false
 
-function HealthScale() {
-	iHealth = 0
-	for (local ply; ply = Entities.FindByClassname(ply, "player") ;) {
-		if (ply.GetTeam() == TEAMS.HUMANS) {
-			iHealth += iHealthAdd
+ENDO_BOMBING <- false
+ENDO_BOMBING_NEXT <- 0
+ENDO_BOMBING_DELAY <- 0.6
+ENDO_BOMBING_RADIUS <- 2000
+ENDO_BOMBING_HEIGHT <- 512
 
-		}
+// ! CompilePal::IncludeDirectory("sound/eltra/cic")
+// PrecacheSound("eltrasnag/cic/ENDO_slip1.mp3")
+// PrecacheSound("eltrasnag/cic/ENDO_slip2.mp3")
+// PrecacheSound("eltrasnag/cic/ENDO_random1.mp3")
+
+// !CompilePal::IncludeFile(materials/skybox/sky_quarry01up)
+// !CompilePal::IncludeFile(materials/skybox/sky_quarry01dn)
+// !CompilePal::IncludeFile(materials/skybox/sky_quarry01lf)
+// !CompilePal::IncludeFile(materials/skybox/sky_quarry01rt)
+// !CompilePal::IncludeFile(materials/skybox/sky_quarry01bk)
+// !CompilePal::IncludeFile(materials/skybox/sky_quarry01ft)
+
+
+CurrentAnimation <- ""
+
+vWant <- Vector()
+
+
+
+Cutscene1_StartAngle <- self.GetAbsAngles()
+Cutscene1_EndQuat <- QAngle(Cutscene1_StartAngle.x, Cutscene1_StartAngle.y + 180, Cutscene1_StartAngle.z).ToQuat()
+
+
+function Precache() {
+
+
+	if (ENDO_DEV)
+
+		::MapStage <- 2
+}
+
+
+// intro and boss cutscenes
+
+function StartBoss() {
+	NPC_GRAVITY = 0
+
+	QFire("s3_mus_endoboss_a", "PlaySound", "", 0.1)
+
+
+	if (ENDO_DEV) {
+		GetListenServerHost().SetAbsOrigin(Entities.FindByName(null, "endo_dev_origin").GetOrigin())
+		// BossActivate()
+		return
 	}
-	iHealthPerSegment = iHealth/iHealthBarSegments
+
+	// RunScriptCode(self, "AddThinkToEnt(self, `TurnFacePlayer`)", 1)
+
+
+
+
+	local ENDO_bossactivate = 1
+	RunScriptCode(self, "BossActivate()", ENDO_bossactivate)
 
 }
 
-function OnPostSpawn() {
-	// if (XMODE) {
-	// 	iHealthAdd *= 1.5
-	// }
-	HealthScale()
-	// Setting up hitbox
-	// hBossBase = SpawnEntityFromTable("base_boss", {
-	// 	targetname = "Raxsei",
-	// 	model = BRUSHMODELS["ralsei_hitbox"], // can only safely do this in onpostspawn
-	// 	health = iHealth,
-	// 	maxhealth = 99999,
-	// })
+function TurnFacePlayer() { // align ENDO with players in cutscene
+	self.SetAbsAngles(QuaternionSlerp(self.GetAbsAngles().ToQuat(), Cutscene1_EndQuat, 0.1).ToQAngle())
+	// printl("look at me")
+	return 0.05
+}
+
+
+// actual bossfight code beyond this point
+
+function BossActivate() {
+	RunScriptCode(self, "ScreenFade(null, 255, 255, 255, 255, 0.7,0.1, FFADE_IN)", 0.84)
+	In_Cutscene = false
+	RunScriptCode(self, "Wake()", 0.84)
+	RunScriptCode(self, "HealthScale()", 0.5)
+
+	// QFire("s3_mus_ENDOboss_a", "StopSound")
+
+	QFire("s3_mus_ENDOboss_a", "PlaySound")
+}
+
+
+function CustomSpawn() {
 	self.KeyValueFromString("targetname", "endovus")
-	hBossBase.SetModelSimple(HitboxModelName)
-	hBossBase.AcceptInput("SetSpeed","0",null,null)
-	hBossBase.AcceptInput("SetStepHeight","0",null,null)
-	hBossBase.AcceptInput("SetMaxJumpHeight","0",null,null)
-	hBossBase.SetResolvePlayerCollisions(false)
-	// NetProps.SetPropBool(hBossBase, "m_bUseBossHealthBar", true)
+	// DoAnimation("move_stand") // ENDO is praying, players see her from elevator.
+	RunScriptCode(hVisModel, "SetAnimation(self, `tuff`)", 0.1)
+	if (ENDO_DEV)
+		::MapStage <- 2
+		local tp = Entities.FindByName(null, "ENDO_dev_spawn")
+		GetListenServerHost().SetAbsOrigin(tp.GetOrigin())
+		GetListenServerHost().SnapEyeAngles(tp.GetAbsAngles())
 
-	BossBaseSync()
-
-	self.KeyValueFromInt("solid", 1)
-
-	if (self.GetClassname() == "func_physbox" || self.GetClassname() == "func_physbox_multiplayer" ) { // are we a brush-based entity?
-		hBossBase.SetModelScale(4,1)
-	}
-
-	self.SetCollisionGroup(Constants.ECollisionGroup.COLLISION_GROUP_DEBRIS)
-	hBossBase.SetCollisionGroup(Constants.ECollisionGroup.COLLISION_GROUP_INTERACTIVE_DEBRIS)
-
-	BossBaseSync()
-
-	// SetParentEX(hBossBase, self)
-
-	ListenHooks({
-
-		function OnScriptHook_OnTakeDamage(params) {
-			// printl("damage hook")
-			if (params.const_entity == hBossBase && params.inflictor != null && params.inflictor.IsPlayer()) {
-				// printl(__DumpScope(1, params))
-				local iDamage = params.damage
-				local activator = params.attacker
-
-				iHealth -= params.damage
-
-
-				local vPlayerOrigin = activator.EyePosition()
-				local vOrigin = self.GetOrigin()
-
-				local DamageVec = GetMovementVector(vPlayerOrigin, vOrigin)
-
-
-
-				// self.SetAbsOrigin(vOrigin + (iDamage * DamageVec))
-
-				// iCurAccel *= 20
-			}
-		}
-
-	})
-
-	// self.SetHealth(iHealth) // bad idea do connect input instead
-	self.ConnectOutput("OnTakeDamage", "OnTakeDamage")
-	local vOrigin = self.GetOrigin()
-
-	// hVisual.SetAbsOrigin(vOrigin)
-	// hVisualSleeping.SetAbsOrigin(vOrigin)
-
-	// SetParentEX(hHitbox,self)
-	// SetParentEX(hVisualSleeping,self)
 }
 
+In_Charge <- false // is ENDO actively charging someone?
+Waiting <- false // dummy waiting variable for attacks to use
+WaitEnd <- 0 // the end of the above's waiting period
 
-function BossStart() {
-	printl("bruh")
-	QFire("mus_endovus", "PlaySound")
-	ze_map_say("*** - ENDOVUS - ***")
-	AddThinkToEnt(self, "ActiveThink")
-}
+ENDO_HOVER_SPEED <- 2
+ENDO_HOVER_DISTANCE <- 100
+function CustomActive() {
 
-function SleepThink() {
-
-	if (iHealth <= 0 || !ValidEntity(hBossBase)) {
-		Death()
-		return
-	}
-
-	BossBaseSync()
-
-
-	local time = Time()
-
-
-	local vOrigin = self.GetOrigin()
-	if (Retarget()) {
-		Wake()
-	}
-
-	return 1
-}
-
-function BossBaseSync() {
-	hBossBase.SetAbsAngles(self.GetAbsAngles())
-	hBossBase.SetAbsOrigin(self.GetOrigin() + vBossBaseOffset)
-}
-
-function ActiveThink() {
-
-	if (iHealth <= 0 || !ValidEntity(hBossBase)) {
-		Death()
-		return
-	}
-
-	if (!ValidEntity(hTarget) || !hTarget.IsAlive() || !hTarget.GetTeam() == TEAMS.HUMANS || iObstacles > iMaxObstacles) { // verify if target is valid, if not then retarget
-		if (!Retarget()) {
-			QFire("redwin", "RoundWin") // everyone died
-		}
-	}
-
-
-	local time = Time()
-
+	ShowBossBar()
 	local vOrigin = self.GetOrigin()
 	local vAngles = self.GetAbsAngles()
-	local vNextOrigin = vZero
+	local vNextOrigin = vOrigin
+	local hTargOrigin = hTarget.EyePosition()
+	local flTime = Time()
+	local flHoverOffset = sin(flTime * ENDO_HOVER_SPEED) * ENDO_HOVER_DISTANCE
 
-
-
-	local vPlayerOrigin = hTarget.EyePosition() // trying out eyepos to see if it looks better
-	local vPlayerAngles = hTarget.GetAbsAngles()
-
-	// player interaction code
-
-	if (time >= iNextAttackTime) {
-		iNextAttackTime = time + iAttackCooldown
-		for (local ply; ply = Entities.FindByClassnameWithin(ply, "player", vOrigin, iAttackRadius);) {
-			if (ply.GetTeam() != TEAMS.HUMANS) {
-				continue;
-			}
-			if (ply != hTarget) {
-				ply.TakeDamage(20, Constants.FDmgType.DMG_ACID, hBossBase)
-
-			}
-			QFireByHandle(ply, "SpeakResponseConcept", "MP_CONCEPT_PLAYER_PAIN", 0.1)
-			ScreenFade(ply, 255, 0, 0, 10, 0.5, 0.01, FFADE_IN)
-			ply.SetAbsOrigin(vLerp(ply.GetOrigin(), vOrigin + Vector(0,0,100), 0.1))
-			local porigin = ply.EyePosition()
-			local maptrace = QuickTrace(porigin, porigin, ply, MASK_SOLID_BRUSHONLY) // if we have put the player out of the map bounds, it's time for the kill
-			if (maptrace.hit) {
-				ply.TakeDamage(10000, Constants.FDmgType.DMG_ACID, hBossBase)
-			}
-		}
-
-	}
-
-	// *BOSS* attack code
-	if (iThisAttack != iLastAttack) { // do attack behaviours
-		SetAnimation(self, "idle")
-		iFollowSpeed = 300
-		iTurnAccel = 0.5
-		switch (iThisAttack) {
-			case 0:
-				// vOrigin = vPlayerOrigin + Vector(0, 0, 1000)
-				break;
-				case 1:
-				iFollowSpeed = 600
-				iTurnAccel = 0.04
-				SetAnimation(self, "jumping")
-
-			break;
-
-
-			case 2:
-
-			break;
-			case 3:
-			break;
-			case 4:
-			break;
-		}
-	}
-	iLastAttack = iThisAttack
-
-
-
-	EBossBar(iHealth, iHealthPerSegment, iHealthBarSegments)
-
-	if (time >= iNextBossAttack) { // annoying
-		iNextBossAttack = time + iBossAttackWait
-		// PlaySoundEX(SF_AGGRESSION, vOrigin, 10, RandomInt(95,105), self)
-		iThisAttack = RandomInt(0,4)
-		// PrecacheSound(SF_AGGRESSION)
+	if (flTime >= ENDO_NEXT_RETARGET_TIME) {
+		printl("retarget")
+		ENDO_NEXT_RETARGET_TIME = RandomInt(6,12) + flTime
+		hTarget = RandomCT()
+		return -1
 	}
 
 
-
-
-
-
-
-	// movement code
-
-	if (iCurAccel < iMaxAccel) { // calcualte acceleration
-
-
-		// iCurAccel = clamp((iCurAccel + clamp((iCurAccel * (iAccelRate)), 0.1, iAccelRate)), -iMaxAccel, iMaxAccel)/iMaxAccel
-		iCurAccel = clamp(iCurAccel + iAccelRate/iMaxAccel, -1, 1)
-
-	}
-
-	iCurAccel *= 0.9
-
-	printl("Current Accel: "+iCurAccel.tostring())
-
-	// local AngDiff = QAngle(LookVec) - vAngles
-	// local AngToPlayer = FindAng(vOrigin, vPlayerOrigin)
-	local AngToPlayer = GetAngleTo(vPlayerOrigin, vOrigin)
-
-	// local AngDiff = vAngles - LookAng
-
-	local NextAngle;
-
-	// NextAngle = vAngles - AngleDiff3D(AngToPlayer, vAngles)*0.1
-	// NextAngle = vAngles - AngleDiff3D(AngToPlayer, vAngles)*0.1
-
-
-	// AngleDiff3D()
-	// NextAngle
-
-
-	// NextAngle = NextAngle.ToQAngle()
-	// NextAngle.z = 0
-
-
-	// self.SetAbsAngles(AngleDiff3D(AngToPlayer, vAngles)*-0.1)
-	self.SetAbsAngles((QuaternionSlerp(vAngles.ToQuat(), (AngToPlayer + QModelOffset).ToQuat(), iTurnAccel)).ToQAngle());
-
-
-	local vMoveVec = GetMovementVector(vPlayerOrigin, vOrigin)
-
-	// scale movement speed with player distance
-	local iMercyMult = clamp(GetDistance(vOrigin, vPlayerOrigin) * iMercyDistanceMult, 0.5, 1)
-
-	// printl("Mercy mult: "+iMercyDistanceMult.tostring())
-
-	local movespeed = clamp(iFollowSpeed * iMercyDistanceMult, iMinFollowSpeed, iFollowSpeed) * easeInBack(iCurAccel)
-
-	// printl("speed "+movespeed.tostring())
-
-	// create the next movement vector
-	vNextOrigin += (self.GetForwardVector() * -movespeed)
-
-
-	local tOrigin = vOrigin + vNextOrigin + UpVec * 32
-	local groundtrace = QuickTrace(tOrigin, tOrigin + (DownVec*64), self, MASK_SOLID_BRUSHONLY)
-
-	// DebugDrawLine_vCol(groundtrace.startpos, groundtrace.pos,Vector(0,255,0), false, 0.1)
-	// local facetrace = QuickTrace(tOrigin, tOrigin + vAngles.Forward()*10, self)
-	// DebugDrawLine_vCol(facetrace.startpos, facetrace.pos, Vector(255,0,0), false, 0.1)
-
-	// if ( (facetrace.hit == true)) {
-		// vNextOrigin *= -1 // reverse the planned movement
-		// self.SetAbsAngles(vAngles + ROTATE_ANGLE) // rotate to get outselves out of this situation
-		// iObstacles++ // increase obstacles counter
-		// }
-		if (iThisAttack == 1) {
-			vOrigin.z = vTrueZ + abs((sin(time * 1)) * 500)
-
-		// vNextOrigin = groundtrace.pos - vOrigin
-		} else {
-
-		vOrigin.z = LerpFloat(vOrigin.z, vTrueZ, 0.1)
-		}
-	// do the movement!
+	// if (ValidEntity(hTarget) && hTarget.GetOrigin().z < ENDO_BOUNDS_MIN.z) {
+		// hTarget = RandomCT()
+		// return -1
 	// }
-	self.KeyValueFromVector("origin", vOrigin + vNextOrigin)
+
+	if (Time() >= WaitEnd) {
+		Waiting = false
+
+	}
+
+	if (Waiting) { // simple wait system for the boss fight
+		return 0.1
+	}
+
+	if (flTime >= ENDO_NEXT_ATTACK_TIME) {
+		RandomAttack()
+	}
+
+
+	if (ENDO_ORBIT) { // endo is orbitting around player
+		vNextOrigin = vLerp(vOrigin, Vector(sin(flTime) * ENDO_ORBIT_RADIUS + hTargOrigin.x, cos(flTime) * ENDO_ORBIT_RADIUS + hTargOrigin.y, hTargOrigin.z + flHoverOffset), 0.05)
+		TrackPosition(self, hTargOrigin + Vector(0,0, -200), 0.2)
+		DoAnimation("fly1")
+	}
+
+
+	if (ENDO_BOMBING) {
+		if (flTime >= ENDO_BOMBING_NEXT) {
+			local vBombOrigin = ENDO_ORIGIN + Vector(RandomInt(-ENDO_BOMBING_RADIUS, ENDO_BOMBING_RADIUS), RandomInt(-ENDO_BOMBING_RADIUS, ENDO_BOMBING_RADIUS), ENDO_BOMBING_HEIGHT)
+
+			vNextOrigin = vBombOrigin
+			PrecacheModel("models/eltra/cic/endovus_laserbomb.mdl")
+			local hBomb = Spawn("prop_dynamic", {
+				model = "models/eltra/cic/endovus_laserbomb.mdl",
+				modelscale = 0,
+				vscripts = "eltrasnag/christiscoming/endovus_laserbomb.nut",
+				origin = vBombOrigin + Vector(0, 0, 512)
+			})
 
 
 
-	BossBaseSync()
-
-
-	return iActiveDelta
-
-}
-
-function Retarget() {
-	iObstacles = 0 // reset obstacles now that we have a new target
-	local vOrigin = self.GetOrigin()
-
-	for (local ply; ply = Entities.FindByClassname(ply, "player");) {
-		if (ply.GetTeam() == TEAMS.HUMANS && ply.IsAlive()) {
-			hTarget <- ply
-			return true
+			ENDO_BOMBING_NEXT = ENDO_BOMBING_DELAY + flTime
+			// SetAnimation(self, "bomb1")
+			SetAnimation(hVisModel, "bomb1")
 		}
 	}
-	return false
-}
 
-function Sleep() {
+	if (ENDO_GRABBING) {
+		local ply;
+		ENDO_ORBIT = false
 
-	// EnableMotion(self)
-	// // iSleepNextExpireTime = Time() +  iSleepExpireTime
+		while (ply = Entities.FindByClassnameWithin(ply, "player", vOrigin, ENDO_GRABBING_RADIUS)) { // looking for grabbable player
+			if (ply.GetTeam() == TEAMS.HUMANS)
+				printl("caught you bitch")
+				break;
+		}
 
-	// AddThinkToEnt(self, "SleepThink");
-	// SetAnimation(self, "idle")
+		if (ply) {
+			vNextOrigin = vLerp(vOrigin, vOrigin + Vector(RandomInt(-200, 200), RandomInt(-200, 200), 100), 0.1) // caught player
+			DoAnimation("carry1_b")
+			TrackPosition(self, vWant, 0.04)
+			ply.KeyValueFromVector("origin", vOrigin)
+			ply.SnapEyeAngles(QuaternionSlerp(GetAngleTo(vOrigin, ply.EyePosition()).ToQuat(), ply.EyeAngles().ToQuat(), 0.1).ToQAngle())
+		} else { // lunge
+			DoAnimation("carry1")
+			TrackPosition(self, hTargOrigin, 0.08)
+			vNextOrigin = vLerp(vOrigin, vOrigin + vAngles.Forward() * ENDO_GRABBING_SPEED, 0.3)
 
-
-}
-
-function Wake() {
-	// DisableMotion(self)
-
-	AddThinkToEnt(self, "ActiveThink")
-	SetAnimation(self, "running")
-
-}
-
-function OnTakeDamage() {
-
-
-}
-
-function BaseBossHealthSync() {
-	// iHealth = hBossBase.GetHealth()
-	// ?
-}
-// CollectEventsInScope({
-
-// 	function OnScriptHook_OnTakeDamage(params) {
-// 		if (params.const_entity == self) {
-// 			printl("Ouch")
-// 			self.SetAbsOrigin(self.GetOrigin() + damage_force)
-
-// 		}
-// 	}
-
-// })
-
-function Death() {
-	AddThinkToEnt(self, "")
-	if (ValidEntity(hBossBase)) {
-		hBossBase.Kill()
+		}
 	}
-	local vOrigin = self.GetOrigin()
-	DoEffect(iDeathParticle,vOrigin, 0.5)
-	PlaySoundNPC(SF_DEATH, self)
-	SetAnimation(self, "die")
-	QFireByHandle(self, "Kill", "", 1)
+
+	local vMoveWant = GetMovementVector(vWant, vOrigin) // movement vector to the vWant position
+
+	if (NPC_MOVEMENT_OVERRIDE) {
+		self.KeyValueFromVector("origin", vNextOrigin)
+	}
+	// return 0.01
 }
+
+function CustomWake() {
+	// self.
+}
+
+function DoAnimation(anim = "ref", delay = 0) {
+	if (CurrentAnimation != anim)
+		SetAnimation(hVisModel, anim, delay, true)
+		CurrentAnimation = anim
+}
+
+function RandomArenaPos() {
+	return Vector(RandomInt(ENDO_BOUNDS_MIN.x, ENDO_BOUNDS_MAX.x), RandomInt(ENDO_BOUNDS_MIN.y, ENDO_BOUNDS_MAX.y), ENDO_BOUNDS_MIN.z)
+}
+
+function CustomSleep() { // this is boss!!! we cant be sleeping!!
+	// if (In_Cutscene == false)
+		// hTarget = RandomCT()
+		// Wake()
+}
+
+
+
+SF_FOOTSTEP <- "eltra/72hr/footsteps/ENDOstep"
+SF_FOOTSTEP_OFFSET <- Vector(0,0,-192)
+
+
+// function Footstep() {
+	// PlaySoundEX(SF_FOOTSTEP + RandomInt(1,4) + ".wav", self.GetOrigin() - SF_FOOTSTEP_OFFSET, 10, RandomInt(96,103))
+// }
+
+function AttackStop() {
+	ENDO_ORBIT = false
+	ENDO_GRABBING = false
+	ENDO_BOMBING = false
+	ENDO_DIVING = false
+
+}
+
+function RandomAttack() {
+	AttackStop()
+
+	switch (RandomInt(0,3)) {
+		case 0:
+			AttackStop()
+			ENDO_ORBIT = true
+		break;
+		case 1:
+			AttackStop()
+			ENDO_GRABBING = true
+		break;
+		case 2:
+			AttackStop()
+			ENDO_BOMBING = true
+		break;
+		case 3:
+			AttackStop()
+			ENDO_DIVING = true
+		break;
+	}
+	SpeakLine("random"+RandomInt(2,6))
+	// NPC_MOVEMENT_OVERRIDE = false
+	ENDO_NEXT_ATTACK_TIME = RandomInt(7,12) + Time()
+}
+
+function SpeakLine(line) {
+	local pos = self.GetOrigin()
+	PlaySoundEX("eltra/cic/endo_"+line+".mp3", self, 100, 100, null, 10000)
+	// PlaySoundEX("eltra/cic/endo_"+line+".mp3", pos, 100, 100, null, 10000)
+	// PlaySoundEX("eltra/cic/endo_"+line+".mp3", pos, 100, 100, null, 10000)
+}
+
+function CustomDamage(params) {
+	SpeakLine("hurt0"+RandomInt(1,3))
+
+	if (params.inflictor == hTarget) {
+		iCurAccel *= 0.5
+	}
+}
+
+function BossEnd() {
+	AddThinkToEnt(self, "")
+	// hBossBase.Kill()
+	QFire("s3_mus_endovus_a", "StopSound", "3")
+	// QFire("s3_mus_ENDOboss_b", "FadeOut", "3")
+	RunScriptCode(self, "SpeakLine(`rip`)", 2)
+
+}
+
+function CustomDeath() {
+	BossEnd()
+}
+
 

@@ -16,9 +16,9 @@ const SND_PORTAL1_SHOOT = "eltra/portalgun_shoot_blue1.mp3"
 const SND_PORTAL2_SHOOT = "eltra/portalgun_shoot_red1.mp3"
 
 
-const MAX_DROPPED_TIME = 10
-const MAX_FIRE_WAIT_TIME = 50
-const GUN_SEARCH_RADIUS = 16
+MAX_DROPPED_TIME <- 10
+MAX_FIRE_WAIT_TIME <- 50
+GUN_SEARCH_RADIUS <- 16
 
 // some input consts
 const IN_ATTACK	= 1
@@ -267,17 +267,25 @@ function ShootPortalProjectile(iPortalType) { // Portal gun projectile logic
 	hSprite.ValidateScriptScope()
 	hSpriteScope <- hSprite.GetScriptScope()
 
-	local qForward = hGunOwner.EyeAngles().Forward()
-	if (ValidEntity(hGunOwner)) {
 
+	local qForward = hGunOwner.EyeAngles().Forward()
+
+	if (ValidEntity(hGunOwner)) {
+		local vEyePos = hGunOwner.EyePosition()
 		// hGunOwner.ViewPunch(QAngle(653,RandomFloat(20,401), 643))
-		hSprite.SetAbsOrigin(hGunOwner.EyePosition() + qForward * 8)
-		hSpriteScope.iPortalType = iPortalType
-		hSpriteScope.qMoveAngles = qForward
-		hSpriteScope.hGunOwner = hGunOwner
+		hSprite.SetAbsOrigin(vEyePos + qForward * 8)
+		hSpriteScope.iPortalType <- iPortalType
+
+		t_ShootTrace <- QuickTrace(vEyePos, vEyePos + qForward * 10000)
+
+		// hSpriteScope.qMoveAngles <- qForward // ? is this not a QAngle
+		hSpriteScope.hGunOwner <- hGunOwner
+
+
 		hSpriteScope.hGun <- self
-		hSpriteScope.vecLastOrigin <- hGunOwner.EyePosition()
-		hSpriteScope.vForward = hGunOwner.EyeAngles().Forward()
+		// hSpriteScope.vecLastOrigin <- hGunOwner.EyePosition()
+		// hSpriteScope.vForward <- qForward
+		// hSpriteScope.h_Player <- hGunOwner
 	}
 }
 
